@@ -26,13 +26,13 @@ Provides a `then` method so this can be used in a promise-like fashion to get th
 ```ts
 const reduceStream = new FS.Reduce((sum, n) => sum+n, 0);
 
-batchStream.write(0);
-batchStream.write(1);
-batchStream.write(2);
-batchStream.write(3);
-batchStream.end(4);
+reduceStream.write(0);
+reduceStream.write(1);
+reduceStream.write(2);
+reduceStream.write(3);
+reduceStream.end(4);
 
-batchStream.then( (result) => {
+reduceStream.then( (result) => {
 	console.log(result); // 10
 });
 
