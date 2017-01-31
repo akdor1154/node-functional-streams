@@ -1,7 +1,7 @@
 # Functional Streams
 
 Provides four native Node streams that mirror the behaviour of basic FP array manipulations. As they extend
-directly from Node native streams, they can be `pipe`d and emit events as you are used to.
+directly from Node native streams, they can be `pipe`d and emit events as you are used to. No runtime dependencies.
 
 ```ts
 const FS = require('functional-streams');
