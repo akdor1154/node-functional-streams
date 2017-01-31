@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/akdor1154/node-serialise.git"
+    "url": "git+https://github.com/akdor1154/node-functional-streams.git"
   },
   "keywords": [
     "streams",
