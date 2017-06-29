@@ -2,7 +2,7 @@
 
 import assert = require('assert');
 
-import {PassThrough} from 'stream';
+import {PassThrough, Readable} from 'stream';
 import {Map as MapStream, Filter as FilterStream, Batch, Reduce as ReduceStream} from './streams';
 
 describe('MapStream', () => {
@@ -91,6 +91,64 @@ describe('ReduceStream', () => {
 			assert.deepStrictEqual(result, source.reduce(myReduce, ''));
 		});
 	})
+
+
+	class SourceStream extends Readable {
+
+		data = [1, 2, 3]
+		i = 0;
+
+		constructor() {
+			super({objectMode: true});
+		}
+
+		_read() {
+			if (this.i >= this.data.length) {
+				return this.push(null)
+			};
+			return this.push(this.data[this.i++]);
+		}
+	}
+
+	it('should finish after piping from a readablestream', () => {
+
+
+		const sourceStream = new SourceStream();
+		const mapStream = new MapStream((n: number) => n*2);
+		const reduceStream = new ReduceStream((s, n) => s + n.toString(), '');
+		sourceStream.pipe(mapStream).pipe(reduceStream);
+
+		return reduceStream
+		.then( (result) => {
+			assert.deepStrictEqual(result, '246');
+		});
+	})
+
+	it('should finish when awaited with typescript', async () => {
+
+		const sourceStream = new SourceStream();
+		const reduceStream = new ReduceStream((s, n) => s + n.toString(), '');
+		sourceStream.pipe(reduceStream);
+
+		const result = await reduceStream;
+		assert.deepStrictEqual(result, '123');
+
+	})
+
+	const jsTest = eval(`(async () => {
+
+		const ReduceStream = require('./streams').Reduce;
+
+		const sourceStream = new SourceStream();
+		const reduceStream = new ReduceStream((s, n) => s + n.toString(), '');
+		sourceStream.pipe(reduceStream);
+
+		const result = await reduceStream;
+		assert.deepStrictEqual(result, '123');
+
+	})`);
+
+	it('should finish when awaited with javascript',  jsTest);
 })
 
 describe('BatchStream', () => {
