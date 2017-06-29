@@ -91,17 +91,28 @@ class FilterTransform<T> extends Transform {
 	}
 }
 
+import Deferred = require('promise-native-deferred');
+
 class ReduceTransform<T, R> extends Writable implements PromiseLike<R> {
 
 	private _reduceFunction: (cumulative: R | undefined, newItem: T) => R | Promise<R>;
-	private _cumulative: R | undefined;
+	private _cumulative: R;
+
+	private _promise: Deferred<R>;
 
 	constructor(reduceFunction: (cumulative: R | undefined, newItem: T) => R | Promise<R>, begin?: R) {
 		super({objectMode: true});
 		this._reduceFunction = reduceFunction;
-		this._cumulative = begin;
+		this._cumulative = begin!;
 
+		this._promise = new Deferred<R>();
 
+		this.on('finish', () => {
+			this._promise.resolve(this._cumulative);
+		});
+		this.on('error', (e) => {
+			this._promise.reject(e);
+		})
 
 	}
 
@@ -120,13 +131,14 @@ class ReduceTransform<T, R> extends Writable implements PromiseLike<R> {
 	}
 
 
-	then<T>(f: (r: R) => T | Promise<T>) {
-		return new Promise((resolve, reject) => {
-			this.on('finish', () => {
-				resolve(this._cumulative);
-			})
-		})
-		.then(f);
+	then<T>(f: (r: R) => T | Promise<T>, e?: (e: Error) => any) {
+		return this._promise.promise
+		.then(f, e);
+	}
+
+	catch(e?: (e: Error) => any) {
+		return this._promise.promise
+		.catch(e);
 	}
 
 }

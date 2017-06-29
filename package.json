@@ -32,5 +32,8 @@
     "@types/node": "^6.0.78",
     "mocha": "^3.4.2",
     "typescript": "^2.4.1"
+  },
+  "dependencies": {
+    "promise-native-deferred": "^3.0.0"
   }
 }

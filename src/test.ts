@@ -133,6 +133,23 @@ describe('ReduceStream', () => {
 		const result = await reduceStream;
 		assert.deepStrictEqual(result, '123');
 
+	});
+
+	it('should throw when awaited with typescript', async () => {
+
+		const arr = ['a', 'b']
+		const sourceStream = new SourceStream();
+		const reduceStream = new ReduceStream((s, n: number) => s + arr[n], '');
+		sourceStream.pipe(reduceStream);
+
+		try {
+			const result = await reduceStream;
+			assert.fail('no error', 'error', 'should have thrown', '==');
+		} catch (e) {
+			// all good;
+			return;
+		}
+
 	})
 
 	const jsTest = eval(`(async () => {
