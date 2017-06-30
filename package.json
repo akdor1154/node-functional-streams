@@ -1,6 +1,6 @@
 {
   "name": "functional-streams",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Native implementations of map, reduce, and batch, to act on streams.",
   "main": "build/streams.js",
   "typings": "build/streams",
