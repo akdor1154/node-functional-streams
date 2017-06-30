@@ -166,6 +166,62 @@ describe('ReduceStream', () => {
 	})`);
 
 	it('should finish when awaited with javascript',  jsTest);
+
+	function wait(ms: number) {
+		return new Promise((resolve, reject) => {
+			setTimeout(resolve, ms);
+		});
+	}
+
+	it('should await throw when an async reduce function throws an error', async () => {
+		const sourceStream = new SourceStream();
+		const reduceStream = new ReduceStream(async (s, n: number) => {
+			s += n.toString();
+			await wait(10);
+			if (n == 3) {
+				throw new Error('expected');
+			}
+			return s;
+		}, '');
+
+		sourceStream.pipe(reduceStream);
+
+		let r: any;
+		try {
+			r = await reduceStream;
+			assert.throws(() => r, 'expected');
+		} catch (e) {
+			if (e instanceof assert.AssertionError) {
+				throw e;
+			}
+			assert.throws(() => { throw e }, 'expected');
+		}
+
+	});
+
+	it('should promise catch when an async reduce function throws an error', async() => {
+		const sourceStream = new SourceStream();
+		const reduceStream = new ReduceStream(async (s, n: number) => {
+			s += n.toString();
+			await wait(10);
+			if (n == 3) {
+				throw new Error('expected');
+			}
+			return s;
+		}, '');
+
+		sourceStream.pipe(reduceStream);
+
+		
+		return reduceStream
+			.then((r: string) => {
+				assert.throws(() => r, 'expected');
+			}, (e: Error) => {
+				//console.error(e);
+				//assert.throws(() => { throw e }, 'expected');
+			})
+
+	})
 })
 
 describe('BatchStream', () => {

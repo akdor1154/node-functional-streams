@@ -97,9 +97,10 @@ class ReduceTransform<T, R> extends Writable implements PromiseLike<R> {
 
 	private _reduceFunction: (cumulative: R | undefined, newItem: T) => R | Promise<R>;
 	private _cumulative: R;
-
+	private _errored: boolean = false;
 	private _promise: Deferred<R>;
 
+	constructor(reduceFunction: (cumulative: R, newItem: T) => R | Promise<R>, begin: R);
 	constructor(reduceFunction: (cumulative: R | undefined, newItem: T) => R | Promise<R>, begin?: R) {
 		super({objectMode: true});
 		this._reduceFunction = reduceFunction;
@@ -108,7 +109,9 @@ class ReduceTransform<T, R> extends Writable implements PromiseLike<R> {
 		this._promise = new Deferred<R>();
 
 		this.on('finish', () => {
-			this._promise.resolve(this._cumulative);
+			if (!this._errored) {
+				this._promise.resolve(this._cumulative);
+			}
 		});
 		this.on('error', (e) => {
 			this._promise.reject(e);
@@ -123,7 +126,10 @@ class ReduceTransform<T, R> extends Writable implements PromiseLike<R> {
 			result.then( (r) => {
 				this._cumulative = r;
 				callback();
-			})
+			}, (e) => {
+				this._errored = true;
+				callback(e);
+			});
 		} else {
 			this._cumulative = result;
 			callback();
