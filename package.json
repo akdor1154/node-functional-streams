@@ -6,7 +6,7 @@
   "typings": "build/streams",
   "scripts": {
     "test": "npm run build; mocha build/test.js",
-    "build": "tsc"
+    "prepare": "tsc"
   },
   "repository": {
     "type": "git",
