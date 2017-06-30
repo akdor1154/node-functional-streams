@@ -101,6 +101,7 @@ class ReduceTransform<T, R> extends Writable implements PromiseLike<R> {
 	private _promise: Deferred<R>;
 
 	constructor(reduceFunction: (cumulative: R, newItem: T) => R | Promise<R>, begin: R);
+	constructor(reduceFunction: (cumulative: R | undefined, newItem: T) => R | Promise<R>);
 	constructor(reduceFunction: (cumulative: R | undefined, newItem: T) => R | Promise<R>, begin?: R) {
 		super({objectMode: true});
 		this._reduceFunction = reduceFunction;
