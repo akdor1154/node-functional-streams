@@ -5,7 +5,7 @@
   "main": "build/streams.js",
   "typings": "build/streams",
   "scripts": {
-    "test": "npm run build; mocha build/test.js",
+    "test": "mocha build/test.js",
     "prepare": "tsc"
   },
   "repository": {
