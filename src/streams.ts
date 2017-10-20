@@ -32,7 +32,7 @@ class BatchTransform<T> extends Transform {
 }
 
 function isPromise<T>(t: any): t is Promise<T> {
-	return (typeof t.then === 'function');
+	return (t && typeof t.then === 'function');
 }
 
 class MapTransform<T, U> extends Transform  {
