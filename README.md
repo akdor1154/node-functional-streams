@@ -1,5 +1,7 @@
 # Functional Streams
 
+https://circleci.com/gh/akdor1154/node-functional-streams/tree/master.svg?style=svg
+
 Provides four native Node streams that mirror the behaviour of basic FP array manipulations. As they extend
 directly from Node native streams, they can be `pipe`d and emit events as you are used to. No runtime dependencies, typescript definitions included.
 
@@ -10,13 +12,13 @@ const FS = require('functional-streams');
 ## Map
 
 ```js
-const mapStream = new FS.Map((n) => (n+2));
+const mapStream = new FS.Map((n) => n + 2);
 ```
 
 ## Filter
 
 ```js
-const filterStream = new FS.Filter((n) => (n % 2 === 0));
+const filterStream = new FS.Filter((n) => n % 2 === 0);
 ```
 
 ## Reduce
@@ -24,7 +26,7 @@ const filterStream = new FS.Filter((n) => (n % 2 === 0));
 Provides a `then` method so this can be used in a promise-like fashion to get the end result.
 
 ```js
-const reduceStream = new FS.Reduce((sum, n) => sum+n, 0);
+const reduceStream = new FS.Reduce((sum, n) => sum + n, 0);
 
 reduceStream.write(0);
 reduceStream.write(1);
@@ -32,10 +34,9 @@ reduceStream.write(2);
 reduceStream.write(3);
 reduceStream.end(4);
 
-reduceStream.then( (result) => {
+reduceStream.then((result) => {
 	console.log(result); // 10
 });
-
 ```
 
 ## Batch
@@ -52,4 +53,3 @@ batchStream.end(4);
 batchStream.read(); // [0, 1, 2];
 batchStream.read(); // [3, 4];
 ```
-

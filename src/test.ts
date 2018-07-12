@@ -109,7 +109,7 @@ describe('ReduceStream', () => {
 		const reduceStream = new ReduceStream((s, n) => s + n.toString(), '');
 		sourceStream.pipe(mapStream).pipe(reduceStream);
 
-		return reduceStream.then(result => {
+		return reduceStream.then((result) => {
 			assert.deepStrictEqual(result, '246');
 		});
 	});

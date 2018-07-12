@@ -114,7 +114,7 @@ class ReduceTransform<T, R> extends Writable implements PromiseLike<R> {
 					resolve(this._cumulative);
 				}
 			});
-			this.on('error', e => {
+			this.on('error', (e) => {
 				reject(e);
 			});
 		});
