@@ -1,6 +1,6 @@
 # Functional Streams
 
-https://circleci.com/gh/akdor1154/node-functional-streams/tree/master.svg?style=svg
+[![CircleCI](https://circleci.com/gh/akdor1154/node-functional-streams.svg?style=svg)](https://circleci.com/gh/akdor1154/node-functional-streams)
 
 Provides four native Node streams that mirror the behaviour of basic FP array manipulations. As they extend
 directly from Node native streams, they can be `pipe`d and emit events as you are used to. No runtime dependencies, typescript definitions included.
