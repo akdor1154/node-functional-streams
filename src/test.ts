@@ -10,6 +10,8 @@ import {
 	Reduce as ReduceStream
 } from './streams';
 import { resolve } from 'path';
+import sms = require('source-map-support');
+sms.install();
 
 function collect<T>(stream: Readable) {
 	const dest: T[] = [];
@@ -46,6 +48,48 @@ describe('MapStream', () => {
 		const result = await collect(mapStream);
 		assert.deepStrictEqual(result, source.map(myMap));
 	});
+
+	it('should emit errors when the map function throws synchronously', async () => {
+		const source = [0, 1, 2, 3, 4, 5];
+		const sourceStream = new PassThrough({ objectMode: true });
+
+		function myMap(n: number): string {
+			if (n == 3) {
+				throw new Error('kablam');
+			}
+			return n.toString(2);
+		}
+
+		const mapStream = new MapStream(myMap);
+		sourceStream.pipe(mapStream);
+
+		source.forEach(sourceStream.write.bind(sourceStream));
+		sourceStream.end();
+
+		await assertThrowsAsync(() => collect(mapStream), Error, 'kablam');
+	});
+
+	it('should emit errors when the map function rejects', async () => {
+		const source = [0, 1, 2, 3, 4, 5];
+		const sourceStream = new PassThrough({ objectMode: true });
+
+		const error = new Error('kablam');
+
+		async function myMap(n: number): Promise<string> {
+			if (n == 3) {
+				throw error;
+			}
+			return n.toString(2);
+		}
+
+		const mapStream = new MapStream(myMap);
+		sourceStream.pipe(mapStream);
+
+		source.forEach(sourceStream.write.bind(sourceStream));
+		sourceStream.end();
+
+		await assertThrowsAsync(() => collect(mapStream), Error, 'kablam');
+	});
 });
 
 describe('FilterStream', () => {
@@ -65,6 +109,46 @@ describe('FilterStream', () => {
 
 		const result = await collect(filterStream);
 		assert.deepStrictEqual(result, source.filter(myFilter));
+	});
+
+	it('should emit errors when the filter function throws synchronously', async () => {
+		const source = [0, 1, 2, 3, 4, 5];
+		const sourceStream = new PassThrough({ objectMode: true });
+
+		function myFilter(n: number): boolean {
+			if (n === 3) {
+				throw new Error('boom!');
+			}
+			return n % 2 === 0;
+		}
+
+		const filterStream = new FilterStream(myFilter);
+		sourceStream.pipe(filterStream);
+
+		source.forEach(sourceStream.write.bind(sourceStream));
+		sourceStream.end();
+
+		await assertThrowsAsync(() => collect(filterStream), Error, 'boom!');
+	});
+
+	it('should emit errors when the filter function rejects', async () => {
+		const source = [0, 1, 2, 3, 4, 5];
+		const sourceStream = new PassThrough({ objectMode: true });
+
+		async function myFilter(n: number): Promise<boolean> {
+			if (n === 3) {
+				throw new Error('boom!');
+			}
+			return n % 2 === 0;
+		}
+
+		const filterStream = new FilterStream(myFilter);
+		sourceStream.pipe(filterStream);
+
+		source.forEach(sourceStream.write.bind(sourceStream));
+		sourceStream.end();
+
+		await assertThrowsAsync(() => collect(filterStream), Error, 'boom!');
 	});
 });
 

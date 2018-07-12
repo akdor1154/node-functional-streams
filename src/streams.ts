@@ -49,7 +49,6 @@ class MapTransform<T, U> extends Transform {
 		encoding: string,
 		callback: (error?: Error, result?: U) => void
 	) {
-		const result = this._mapFunction(data);
 		try {
 			const result = await this._mapFunction(data);
 			this.push(result);

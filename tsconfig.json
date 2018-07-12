@@ -4,7 +4,8 @@
 		"module": "commonjs",
 		"strict": true,
 		"outDir": "build",
-        "declaration": true,
+		"declaration": true,
+		"sourceMap": true
 	},
 	"include": [
 		"src/**/*.ts"
