@@ -84,7 +84,7 @@ describe('ReduceStream', () => {
 			return result + n.toString();
 		}
 
-		const reduceStream = new ReduceStream(myReduce, '');
+		const reduceStream = new ReduceStream(myReduce, '' as string);
 		sourceStream.pipe(reduceStream);
 
 		source.forEach(sourceStream.write.bind(sourceStream));

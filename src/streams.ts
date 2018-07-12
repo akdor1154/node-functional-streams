@@ -34,10 +34,6 @@ class BatchTransform<T> extends Transform {
 	}
 }
 
-function isPromise<T>(t: any): t is Promise<T> {
-	return t && typeof t.then === 'function';
-}
-
 class MapTransform<T, U> extends Transform {
 	_mapFunction: (t: T) => U | Promise<U>;
 
@@ -48,20 +44,18 @@ class MapTransform<T, U> extends Transform {
 		}
 		this._mapFunction = mapFunction;
 	}
-	_transform(
+	async _transform(
 		data: T,
 		encoding: string,
-		callback: (error?: any, result?: any) => void
+		callback: (error?: Error, result?: U) => void
 	) {
 		const result = this._mapFunction(data);
-		if (isPromise(result)) {
-			result.then(syncResult => {
-				this.push(syncResult);
-				callback();
-			});
-		} else {
+		try {
+			const result = await this._mapFunction(data);
 			this.push(result);
 			callback();
+		} catch (e) {
+			callback(e);
 		}
 	}
 }
@@ -76,104 +70,73 @@ class FilterTransform<T> extends Transform {
 		}
 		this._filterFunction = filterFunction;
 	}
-	_transform(
+	async _transform(
 		data: T,
 		encoding: string,
 		callback: (error?: any, result?: any) => void
 	) {
-		const result = this._filterFunction(data);
-
-		const filter = (testResult: boolean) => {
-			if (testResult) {
-				this.push(data);
-			}
-			callback();
-		};
-
-		if (isPromise(result)) {
-			result.then(syncResult => {
-				filter(syncResult);
-			});
-		} else {
-			filter(result);
+		const result = await this._filterFunction(data);
+		if (result) {
+			this.push(data);
 		}
+		callback();
 	}
 }
 
-import Deferred = require('promise-native-deferred');
+import { resolve } from 'path';
 
 class ReduceTransform<T, R> extends Writable implements PromiseLike<R> {
-	private _reduceFunction: (
-		cumulative: R | undefined,
-		newItem: T
-	) => R | Promise<R>;
+	private _reduceFunction: (cumulative: R, newItem: T) => R | Promise<R>;
 	private _cumulative: R;
 	private _errored: boolean = false;
-	private _promise: Deferred<R>;
+	private _promise: Promise<R>;
 
 	constructor(
 		reduceFunction: (cumulative: R, newItem: T) => R | Promise<R>,
 		begin: R
 	);
+	constructor(reduceFunction: (cumulative: R, newItem: T) => R | Promise<R>);
 	constructor(
-		reduceFunction: (
-			cumulative: R | undefined,
-			newItem: T
-		) => R | Promise<R>
-	);
-	constructor(
-		reduceFunction: (
-			cumulative: R | undefined,
-			newItem: T
-		) => R | Promise<R>,
+		reduceFunction: (cumulative: R, newItem: T) => R | Promise<R>,
 		begin?: R
 	) {
 		super({ objectMode: true });
 		this._reduceFunction = reduceFunction;
 		this._cumulative = begin!;
 
-		this._promise = new Deferred<R>();
-
-		this.on('finish', () => {
-			if (!this._errored) {
-				this._promise.resolve(this._cumulative);
-			}
-		});
-		this.on('error', e => {
-			this._promise.reject(e);
+		this._promise = new Promise<R>((resolve, reject) => {
+			this.on('finish', () => {
+				if (!this._errored) {
+					resolve(this._cumulative);
+				}
+			});
+			this.on('error', e => {
+				reject(e);
+			});
 		});
 	}
 
-	_write(
+	async _write(
 		data: T,
 		encoding: string,
 		callback: (error?: any, result?: any) => void
 	) {
-		const result = this._reduceFunction(this._cumulative, data);
-
-		if (isPromise(result)) {
-			result.then(
-				r => {
-					this._cumulative = r;
-					callback();
-				},
-				e => {
-					this._errored = true;
-					callback(e);
-				}
-			);
-		} else {
+		try {
+			const result = await this._reduceFunction(this._cumulative, data);
 			this._cumulative = result;
 			callback();
+		} catch (e) {
+			this._errored = true;
+			callback(e);
 		}
 	}
 
 	then<T>(f: (r: R) => T | Promise<T>, e?: (e: Error) => any) {
-		return this._promise.promise.then(f, e);
+		return this._promise.then(f, e);
 	}
 
 	catch(e?: (e: Error) => any) {
-		return this._promise.promise.catch(e);
+		return this._promise.catch(e);
 	}
 }
 
