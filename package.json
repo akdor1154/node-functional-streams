@@ -28,9 +28,9 @@
   },
   "homepage": "https://github.com/akdor1154/node-functional-streams#readme",
   "devDependencies": {
-    "@types/mocha": "^2.2.41",
-    "@types/node": "^6.0.78",
-    "mocha": "^3.4.2",
+    "@types/mocha": "^5.2.4",
+    "@types/node": "^8.10.21",
+    "mocha": "^5.2.0",
     "typescript": "^2.9"
   },
   "engines": {
