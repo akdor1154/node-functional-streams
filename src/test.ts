@@ -1,7 +1,7 @@
 ///<reference types="mocha" />
 
 import assert = require('assert');
-
+import assertThrowsAsync = require('assert-throws-async');
 import { PassThrough, Readable } from 'stream';
 import {
 	Map as MapStream,
@@ -9,12 +9,29 @@ import {
 	Batch,
 	Reduce as ReduceStream
 } from './streams';
+import { resolve } from 'path';
+
+function collect<T>(stream: Readable) {
+	const dest: T[] = [];
+	return new Promise((resolve, reject) => {
+		stream.on('readable', () => {
+			let result;
+
+			while ((result = stream.read()) !== null) {
+				dest.push(result);
+			}
+		});
+		stream.on('end', () => {
+			resolve(dest);
+		});
+		stream.on('error', reject);
+	});
+}
 
 describe('MapStream', () => {
-	it('should function as a normal map', () => {
+	it('should function as a normal map', async () => {
 		const source = [0, 1, 2, 3, 4, 5];
 		const sourceStream = new PassThrough({ objectMode: true });
-		const dest: string[] = [];
 
 		function myMap(n: number): string {
 			return n.toString(2);
@@ -23,31 +40,18 @@ describe('MapStream', () => {
 		const mapStream = new MapStream(myMap);
 		sourceStream.pipe(mapStream);
 
-		mapStream.on('readable', () => {
-			let result;
-
-			while ((result = mapStream.read()) !== null) {
-				dest.push(result);
-			}
-		});
-
 		source.forEach(sourceStream.write.bind(sourceStream));
 		sourceStream.end();
 
-		return new Promise((resolve, reject) => {
-			mapStream.on('end', resolve);
-			mapStream.on('error', reject);
-		}).then(() => {
-			assert.deepStrictEqual(dest, source.map(myMap));
-		});
+		const result = await collect(mapStream);
+		assert.deepStrictEqual(result, source.map(myMap));
 	});
 });
 
 describe('FilterStream', () => {
-	it('should function as a normal filter', () => {
+	it('should function as a normal filter', async () => {
 		const source = [0, 1, 2, 3, 4, 5];
 		const sourceStream = new PassThrough({ objectMode: true });
-		const dest: string[] = [];
 
 		function myFilter(n: number): boolean {
 			return n % 2 === 0;
@@ -56,27 +60,16 @@ describe('FilterStream', () => {
 		const filterStream = new FilterStream(myFilter);
 		sourceStream.pipe(filterStream);
 
-		filterStream.on('readable', () => {
-			let result;
-
-			while ((result = filterStream.read()) !== null) {
-				dest.push(result);
-			}
-		});
-
 		source.forEach(sourceStream.write.bind(sourceStream));
 		sourceStream.end();
 
-		return new Promise((resolve, reject) => {
-			filterStream.on('end', resolve);
-		}).then(() => {
-			assert.deepStrictEqual(dest, source.filter(myFilter));
-		});
+		const result = await collect(filterStream);
+		assert.deepStrictEqual(result, source.filter(myFilter));
 	});
 });
 
 describe('ReduceStream', () => {
-	it('should function as a normal reduce', () => {
+	it('should function as a normal reduce', async () => {
 		const source = [0, 1, 2, 3, 4, 5];
 		const sourceStream = new PassThrough({ objectMode: true });
 
@@ -90,9 +83,8 @@ describe('ReduceStream', () => {
 		source.forEach(sourceStream.write.bind(sourceStream));
 		sourceStream.end();
 
-		return reduceStream.then(result => {
-			assert.deepStrictEqual(result, source.reduce(myReduce, ''));
-		});
+		const result = await reduceStream;
+		assert.deepStrictEqual(result, source.reduce(myReduce, ''));
 	});
 
 	class SourceStream extends Readable {
@@ -134,16 +126,16 @@ describe('ReduceStream', () => {
 	it('should throw when awaited with typescript', async () => {
 		const arr = ['a', 'b'];
 		const sourceStream = new SourceStream();
-		const reduceStream = new ReduceStream((s, n: number) => s + arr[n], '');
+		const reduceStream = new ReduceStream((s, n: number) => {
+			const result = s + arr[n];
+			if (n == 3) {
+				throw new Error('kablam!');
+			}
+			return result;
+		}, '');
 		sourceStream.pipe(reduceStream);
 
-		try {
-			const result = await reduceStream;
-			assert.fail('no error', 'error', 'should have thrown', '==');
-		} catch (e) {
-			// all good;
-			return;
-		}
+		await assertThrowsAsync(() => reduceStream, Error, 'kablam!');
 	});
 
 	const jsTest = eval(`(async () => {
@@ -180,73 +172,23 @@ describe('ReduceStream', () => {
 
 		sourceStream.pipe(reduceStream);
 
-		let r: any;
-		try {
-			r = await reduceStream;
-			assert.throws(() => r, Error, 'expected');
-		} catch (e) {
-			if (e instanceof assert.AssertionError) {
-				throw e;
-			}
-			assert.throws(
-				() => {
-					throw e;
-				},
-				Error,
-				'expected'
-			);
-		}
-	});
-
-	it('should promise catch when an async reduce function throws an error', async () => {
-		const sourceStream = new SourceStream();
-		const reduceStream = new ReduceStream(async (s, n: number) => {
-			s += n.toString();
-			await wait(10);
-			if (n == 3) {
-				throw new Error('expected');
-			}
-			return s;
-		}, '');
-
-		sourceStream.pipe(reduceStream);
-
-		return reduceStream.then(
-			(r: string) => {
-				assert.throws(() => r, 'expected');
-			},
-			(e: Error) => {
-				//console.error(e);
-				//assert.throws(() => { throw e }, 'expected');
-			}
-		);
+		await assertThrowsAsync(() => reduceStream, Error, 'expected');
 	});
 });
 
 describe('BatchStream', () => {
-	it('should batch correctly', () => {
+	it('should batch correctly', async () => {
 		const source = [0, 1, 2, 3, 4, 5, 6];
 		const sourceStream = new PassThrough({ objectMode: true });
-		const dest: string[] = [];
 
 		const batchStream = new Batch(3);
 		sourceStream.pipe(batchStream);
 
-		batchStream.on('readable', () => {
-			let result;
-
-			while ((result = batchStream.read()) !== null) {
-				dest.push(result);
-			}
-		});
-
 		source.forEach(sourceStream.write.bind(sourceStream));
 		sourceStream.end();
 
-		return new Promise((resolve, reject) => {
-			batchStream.on('end', resolve);
-		}).then(() => {
-			assert.deepStrictEqual(dest, [[0, 1, 2], [3, 4, 5], [6]]);
-		});
+		const result = await collect(batchStream);
+
+		assert.deepStrictEqual(result, [[0, 1, 2], [3, 4, 5], [6]]);
 	});
 });

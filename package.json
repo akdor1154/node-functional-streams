@@ -30,6 +30,7 @@
   "devDependencies": {
     "@types/mocha": "^5.2.4",
     "@types/node": "^8.10.21",
+    "assert-throws-async": "^3.0.0",
     "mocha": "^5.2.0",
     "typescript": "^2.9"
   },
