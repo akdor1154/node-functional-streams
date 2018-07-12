@@ -75,11 +75,15 @@ class FilterTransform<T> extends Transform {
 		encoding: string,
 		callback: (error?: any, result?: any) => void
 	) {
-		const result = await this._filterFunction(data);
-		if (result) {
-			this.push(data);
+		try {
+			const result = await this._filterFunction(data);
+			if (result) {
+				this.push(data);
+			}
+			callback();
+		} catch (e) {
+			callback(e);
 		}
-		callback();
 	}
 }
 
